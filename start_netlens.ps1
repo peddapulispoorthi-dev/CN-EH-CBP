@@ -4,6 +4,12 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $scriptDir
 
+$defaultPort = if ($env:NETLENS_PORT) { [int]$env:NETLENS_PORT } else { 8000 }
+$port = $defaultPort
+while ((Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0) {
+    $port++
+}
+
 Write-Host "===================================================" -ForegroundColor Cyan
 Write-Host "    NetLens Unified Production Deployment         " -ForegroundColor Cyan
 Write-Host "===================================================" -ForegroundColor Cyan
@@ -19,11 +25,27 @@ try {
 }
 
 # 2. Check Nmap
-try {
+$possibleNmapPaths = @(
+    "$env:ProgramFiles(x86)\Nmap\nmap.exe",
+    "$env:ProgramFiles\Nmap\nmap.exe",
+    "C:\Program Files (x86)\Nmap\nmap.exe",
+    "C:\Program Files\Nmap\nmap.exe"
+)
+$resolvedNmap = $null
+foreach ($candidate in $possibleNmapPaths) {
+    if ($candidate -and (Test-Path $candidate)) {
+        $resolvedNmap = $candidate
+        break
+    }
+}
+
+if ($resolvedNmap) {
+    $nmapDir = Split-Path -Parent $resolvedNmap
+    $env:Path = "$nmapDir;$env:Path"
     $nmapVer = (nmap --version)[0]
     Write-Host "[OK] Detected $nmapVer" -ForegroundColor Green
-} catch {
-    Write-Host "[WARNING] Nmap not found in PATH." -ForegroundColor Yellow
+} else {
+    Write-Host "[WARNING] Nmap not found in the standard install locations. Scanning features may still fail until it is added to PATH." -ForegroundColor Yellow
 }
 
 # 3. Check or build frontend dist
@@ -36,16 +58,18 @@ if (-not (Test-Path $distPath)) {
 }
 
 Write-Host ""
-Write-Host "[INFO] Starting Unified Server at http://localhost:8000 ..." -ForegroundColor Cyan
-Write-Host "[INFO] API Docs at http://localhost:8000/docs" -ForegroundColor Cyan
+Write-Host "[INFO] Starting Unified Server at http://localhost:$port ..." -ForegroundColor Cyan
+Write-Host "[INFO] API Docs at http://localhost:$port/docs" -ForegroundColor Cyan
 Write-Host ""
 
 # Launch browser after 2 seconds
 Start-Job -ScriptBlock {
+    param($url)
     Start-Sleep -Seconds 2
-    Start-Process "http://localhost:8000"
-} | Out-Null
+    Start-Process $url
+} -ArgumentList "http://localhost:$port" | Out-Null
 
 # Run server
 Set-Location (Join-Path $scriptDir "netlens\backend")
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
+$env:PORT = $port
+python -m uvicorn main:app --host 0.0.0.0 --port $port

@@ -1,5 +1,30 @@
-import nmap
 import json
+import os
+import shutil
+
+import nmap
+
+
+def ensure_nmap_binary_on_path():
+    if shutil.which("nmap"):
+        return
+
+    candidates = [
+        os.path.join(os.environ.get("ProgramFiles(x86)", ""), "Nmap", "nmap.exe"),
+        os.path.join(os.environ.get("ProgramFiles", ""), "Nmap", "nmap.exe"),
+        r"C:\Program Files (x86)\Nmap\nmap.exe",
+        r"C:\Program Files\Nmap\nmap.exe",
+    ]
+
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            nmap_dir = os.path.dirname(candidate)
+            os.environ["PATH"] = f"{nmap_dir}{os.pathsep}{os.environ.get('PATH', '')}"
+            return
+
+
+ensure_nmap_binary_on_path()
+
 
 def run_nmap_scan(target: str, profile: str):
     nm = nmap.PortScanner()
