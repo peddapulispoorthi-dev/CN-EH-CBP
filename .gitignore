@@ -29,3 +29,8 @@ Thumbs.db
 # Celery & logs
 *.log
 celerybeat-schedule
+
+# Local PDF and Generated Documentation
+*.pdf
+NetLens_Documentation.html
+generate_pdf.py
