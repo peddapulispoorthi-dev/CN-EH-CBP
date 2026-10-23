@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Databases & local state
+*.db
+*.sqlite3
+netlens.db
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Celery & logs
+*.log
+celerybeat-schedule
