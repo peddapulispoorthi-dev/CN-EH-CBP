@@ -112,6 +112,10 @@ if os.path.exists(frontend_dist):
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         # Allow API routes and OpenAPI docs to pass through
